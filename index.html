@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risu AI 정규식 테스터</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #16181c;
+  --bg2: #1e2025;
+  --bg3: #25272e;
+  --border: #2e3138;
+  --text: #d4d8e0;
+  --muted: #6b7280;
+  --accent: #7c3aed;
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #fbbf24;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+/* HEADER */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+header h1 { font-size: 15px; font-weight: 600; }
+header .tag {
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+/* LAYOUT */
+.layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.sb-top {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.btn-new {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  width: 100%;
+}
+.btn-new:hover { opacity: 0.85; }
+
+.sb-actions { display: flex; gap: 6px; }
+.btn-sm {
+  flex: 1;
+  background: var(--bg3);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 5px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.btn-sm:hover { color: var(--text); border-color: var(--accent); }
+
+input.search {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+input.search:focus { outline: none; border-color: var(--accent); }
+input.search::placeholder { color: var(--muted); }
+
+.list { flex: 1; overflow-y: auto; padding: 6px; }
+.list::-webkit-scrollbar { width: 3px; }
+.list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.item {
+  padding: 9px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+.item:hover { background: var(--bg3); }
+.item.active { background: rgba(124,58,237,.15); border-color: var(--accent); }
+.item-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item-pat { font-size: 10px; color: var(--muted); font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+.sb-count { font-size: 10px; color: var(--muted); text-align: center; padding: 6px; border-top: 1px solid var(--border); }
+
+/* EDITOR */
+.editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.editor-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+.editor-scroll::-webkit-scrollbar { width: 5px; }
+.editor-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Empty state */
+.empty {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--muted);
+}
+.empty .ico { font-size: 40px; opacity: .3; }
+.empty h2 { font-size: 15px; color: var(--text); opacity: .5; }
+.empty p { font-size: 12px; text-align: center; line-height: 1.6; }
+
+/* Form */
+.sec { margin-bottom: 22px; }
+.sec-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--border);
+}
+
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+.field input, .field textarea {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  transition: border-color .15s;
+}
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 70px; font-family: inherit; line-height: 1.5; }
+.mono { font-family: 'Fira Code', 'Cascadia Code', 'Courier New', monospace !important; }
+
+.hint { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.err { font-size: 10px; color: var(--red); margin-top: 3px; display: none; }
+
+/* Pattern + flags row */
+.pat-row { display: flex; gap: 6px; align-items: flex-start; }
+.pat-row input { flex: 1; }
+.flags { display: flex; gap: 3px; }
+.flag {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 26px;
+  height: 33px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+}
+.flag.on { background: rgba(124,58,237,.2); border-color: var(--accent); color: #a78bfa; }
+
+/* Examples */
+.ex-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.ex-row { display: flex; gap: 6px; align-items: center; }
+.ex-lbl { font-size: 10px; color: var(--muted); width: 16px; text-align: right; flex-shrink: 0; }
+.ex-row input {
+  flex: 1;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: monospace;
+}
+.ex-row input:focus { outline: none; border-color: var(--accent); }
+.btn-del {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.btn-del:hover { border-color: var(--red); color: var(--red); }
+.btn-add-ex {
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  width: 100%;
+}
+.btn-add-ex:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Test area */
+.test-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  overflow: hidden;
+}
+.test-head {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.test-head span { font-size: 11px; font-weight: 600; color: var(--muted); }
+.btn-run {
+  background: var(--green);
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+}
+.btn-run:hover { opacity: .85; }
+.test-body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+textarea.test-in {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-family: monospace;
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.5;
+}
+textarea.test-in:focus { outline: none; border-color: var(--accent); }
+
+.results { display: none; grid-template-columns: 1fr 1fr; gap: 10px; }
+.res-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.res-head {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  padding: 5px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.res-body {
+  padding: 8px 10px;
+  font-family: monospace;
+  font-size: 11px;
+  min-height: 50px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.badge {
+  background: rgba(251,191,36,.2);
+  border: 1px solid rgba(251,191,36,.5);
+  color: var(--yellow);
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 8px;
+}
+.badge.none { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.4); color: var(--red); }
+.hl { background: rgba(251,191,36,.35); border-bottom: 2px solid var(--yellow); border-radius: 2px; }
+
+/* Example results */
+.ex-results { display: none; flex-direction: column; gap: 4px; }
+.ex-res-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 10px;
+}
+.status {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; flex-shrink: 0;
+}
+.status.pass { background: rgba(34,197,94,.2); color: var(--green); }
+.status.fail { background: rgba(239,68,68,.2); color: var(--red); }
+.ex-txt { flex: 1; font-family: monospace; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ex-exp { font-family: monospace; font-size: 9px; color: var(--muted); padding: 1px 5px; background: var(--bg3); border-radius: 3px; flex-shrink: 0; }
+
+/* Footer bar */
+.foot {
+  display: none;
+  padding: 10px 24px;
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.btn-save {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 7px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+.btn-save:hover { opacity: .85; }
+.btn-del-main {
+  display: none;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--red);
+  padding: 7px 14px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.btn-del-main:hover { background: rgba(239,68,68,.1); border-color: var(--red); }
+.foot-status { font-size: 11px; color: var(--green); margin-left: auto; }
+.shortcut { font-size: 10px; color: var(--muted); margin-left: auto; }
+
+/* Toast */
+.toasts { position: fixed; bottom: 16px; right: 16px; display: flex; flex-direction: column; gap: 6px; z-index: 100; }
+.toast {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  animation: tin .2s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+.toast.ok { border-color: var(--green); color: var(--green); }
+.toast.ng { border-color: var(--red); color: var(--red); }
+@keyframes tin { from { transform: translateX(16px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+  <h1>Risu AI 정규식 테스터</h1>
+  <span class="tag">RegEx Lab</span>
+</header>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-top">
+      <button class="btn-new" onclick="newItem()">+ 새 정규식</button>
+      <div class="sb-actions">
+        <button class="btn-sm" onclick="exportAll()">내보내기</button>
+        <button class="btn-sm" onclick="document.getElementById('imp').click()">가져오기</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="importAll(event)">
+      </div>
+      <input class="search" id="search" placeholder="검색..." oninput="renderList()">
+    </div>
+    <div class="list" id="list"></div>
+    <div class="sb-count" id="count">0개</div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="editor">
+    <div class="editor-scroll">
+
+      <!-- Empty -->
+      <div class="empty" id="empty">
+        <div class="ico">✦</div>
+        <h2>정규식을 선택하거나 새로 만드세요</h2>
+        <p>왼쪽 목록에서 선택하거나<br>+ 새 정규식 버튼으로 시작하세요</p>
+      </div>
+
+      <!-- Form -->
+      <div id="form" style="display:none">
+
+        <!-- 기본 정보 -->
+        <div class="sec">
+          <div class="sec-title">기본 정보</div>
+          <div class="field">
+            <label>이름</label>
+            <input id="f-name" type="text" placeholder="예: 이탤릭 제거">
+          </div>
+          <div class="field">
+            <label>설명</label>
+            <textarea id="f-desc" placeholder="이 정규식이 무엇을 하는지 설명하세요..."></textarea>
+          </div>
+        </div>
+
+        <!-- 패턴 -->
+        <div class="sec">
+          <div class="sec-title">패턴 설정</div>
+          <div class="field">
+            <label>검색 패턴 (in) — 슬래시 없이 입력</label>
+            <div class="pat-row">
+              <input id="f-pat" type="text" class="mono" placeholder="예: \*([^*]+)\*" oninput="validatePat()">
+              <div class="flags">
+                <button class="flag on" id="fg-g" onclick="toggleFlag('g')" title="전역">g</button>
+                <button class="flag on" id="fg-i" onclick="toggleFlag('i')" title="대소문자 무시">i</button>
+                <button class="flag"    id="fg-m" onclick="toggleFlag('m')" title="멀티라인">m</button>
+                <button class="flag"    id="fg-s" onclick="toggleFlag('s')" title="줄바꿈 포함">s</button>
+              </div>
+            </div>
+            <div class="err" id="pat-err"></div>
+          </div>
+          <div class="field">
+            <label>교체 문자열 (out)</label>
+            <input id="f-out" type="text" class="mono" placeholder="예: $1  /  비워두면 삭제">
+            <div class="hint">캡처그룹 참조: $1 $2 ...  |  빈칸 = 매칭 텍스트 삭제</div>
+          </div>
+        </div>
+
+        <!-- 예시 -->
+        <div class="sec">
+          <div class="sec-title">예시</div>
+          <div class="ex-list" id="ex-list"></div>
+          <button class="btn-add-ex" onclick="addEx()">+ 예시 추가</button>
+          <div class="ex-results" id="ex-results"></div>
+        </div>
+
+        <!-- 직접 테스트 -->
+        <div class="sec">
+          <div class="sec-title">직접 테스트</div>
+          <div class="test-box">
+            <div class="test-head">
+              <span>테스트 입력</span>
+              <button class="btn-run" onclick="runTest()">▶ 실행 (Ctrl+Enter)</button>
+            </div>
+            <div class="test-body">
+              <textarea class="test-in" id="test-in" placeholder="테스트할 텍스트를 입력하세요..."></textarea>
+              <div class="results" id="results">
+                <div class="res-box">
+                  <div class="res-head">
+                    <span>원본 (매칭 강조)</span>
+                    <span class="badge" id="mbadge">0 매치</span>
+                  </div>
+                  <div class="res-body" id="res-orig"></div>
+                </div>
+                <div class="res-box">
+                  <div class="res-head"><span>교체 결과</span></div>
+                  <div class="res-body" id="res-out"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="foot" id="foot">
+      <button class="btn-save" onclick="saveItem()">저장 (Ctrl+S)</button>
+      <button class="btn-del-main" id="del-btn" onclick="deleteItem()">삭제</button>
+      <span class="foot-status" id="foot-st"></span>
+    </div>
+  </div>
+
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+const KEY = 'risu_regex_v1';
+let data = [];
+let activeId = null;
+let flags = new Set(['g','i']);
+let examples = [];
+
+/* ── storage ── */
+function load() {
+  try { data = JSON.parse(localStorage.getItem(KEY)) || []; } catch { data = []; }
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(data)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+/* ── list ── */
+function renderList() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const filtered = data.filter(r =>
+    (r.name||'').toLowerCase().includes(q) ||
+    (r.pattern||'').toLowerCase().includes(q) ||
+    (r.description||'').toLowerCase().includes(q)
+  );
+  const el = document.getElementById('list');
+  if (!filtered.length) {
+    el.innerHTML = `<div style="padding:16px;text-align:center;color:var(--muted);font-size:11px">${q?'검색 결과 없음':'저장된 정규식 없음'}</div>`;
+  } else {
+    el.innerHTML = filtered.map(r => `
+      <div class="item${r.id===activeId?' active':''}" onclick="select('${r.id}')">
+        <div class="item-name">${esc(r.name||'이름 없음')}</div>
+        <div class="item-pat">/${esc(r.pattern||'')}/</div>
+      </div>`).join('');
+  }
+  document.getElementById('count').textContent = `${data.length}개`;
+}
+
+/* ── select / new ── */
+function select(id) {
+  activeId = id;
+  const r = data.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('f-name').value = r.name || '';
+  document.getElementById('f-desc').value = r.description || '';
+  document.getElementById('f-pat').value  = r.pattern || '';
+  document.getElementById('f-out').value  = r.replacement || '';
+  flags = new Set(r.flags || ['g','i']);
+  updateFlags();
+  loadExamples(r.examples || []);
+  showForm(true);
+  clearResults();
+  validatePat();
+  renderList();
+}
+
+function newItem() {
+  activeId = null;
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-pat').value  = '';
+  document.getElementById('f-out').value  = '';
+  flags = new Set(['g','i']);
+  updateFlags();
+  loadExamples([]);
+  showForm(false);
+  clearResults();
+  document.getElementById('foot-st').textContent = '';
+  renderList();
+  document.getElementById('f-name').focus();
+}
+
+function showForm(existing) {
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('form').style.display  = 'block';
+  document.getElementById('foot').style.display  = 'flex';
+  document.getElementById('del-btn').style.display = existing ? 'block' : 'none';
+}
+
+/* ── flags ── */
+function toggleFlag(f) {
+  flags.has(f) ? flags.delete(f) : flags.add(f);
+  updateFlags();
+}
+function updateFlags() {
+  ['g','i','m','s'].forEach(f => {
+    document.getElementById('fg-'+f).className = 'flag' + (flags.has(f) ? ' on' : '');
+  });
+}
+
+/* ── pattern validate ── */
+function validatePat() {
+  const p = document.getElementById('f-pat').value;
+  const el = document.getElementById('pat-err');
+  if (!p) { el.style.display='none'; return true; }
+  try { new RegExp(p, [...flags].join('')); el.style.display='none'; return true; }
+  catch(e) { el.style.display='block'; el.textContent='⚠ '+e.message; return false; }
+}
+
+/* ── examples ── */
+function loadExamples(arr) {
+  examples = arr.map(e => ({...e}));
+  reRenderEx();
+}
+function reRenderEx() {
+  document.getElementById('ex-list').innerHTML = examples.map((e,i) => `
+    <div class="ex-row">
+      <span class="ex-lbl">in</span>
+      <input type="text" value="${escA(e.input||'')}" oninput="examples[${i}].input=this.value" placeholder="입력 예시">
+      <span class="ex-lbl">out</span>
+      <input type="text" value="${escA(e.expected||'')}" oninput="examples[${i}].expected=this.value" placeholder="예상 결과">
+      <button class="btn-del" onclick="removeEx(${i})">×</button>
+    </div>`).join('');
+  document.getElementById('ex-results').style.display = 'none';
+}
+function addEx() {
+  examples.push({input:'', expected:''});
+  reRenderEx();
+}
+function removeEx(i) {
+  examples.splice(i,1);
+  reRenderEx();
+}
+
+/* ── save ── */
+function saveItem() {
+  const name = document.getElementById('f-name').value.trim();
+  const pat  = document.getElementById('f-pat').value.trim();
+  if (!name) { toast('이름을 입력하세요','ng'); document.getElementById('f-name').focus(); return; }
+  if (!pat)  { toast('검색 패턴을 입력하세요','ng'); document.getElementById('f-pat').focus(); return; }
+  if (!validatePat()) { toast('유효하지 않은 패턴입니다','ng'); return; }
+
+  const item = {
+    id: activeId || uid(),
+    name,
+    pattern: pat,
+    flags: [...flags],
+    replacement: document.getElementById('f-out').value,
+    description: document.getElementById('f-desc').value.trim(),
+    examples: examples.map(e=>({...e})),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (!activeId) {
+    item.createdAt = item.updatedAt;
+    data.push(item);
+    activeId = item.id;
+    document.getElementById('del-btn').style.display = 'block';
+  } else {
+    const i = data.findIndex(r => r.id === activeId);
+    if (i >= 0) data[i] = {...data[i], ...item};
+  }
+  save(); renderList();
+  const st = document.getElementById('foot-st');
+  st.textContent = '✓ 저장됨';
+  setTimeout(() => st.textContent='', 2000);
+  toast(`"${name}" 저장 완료`, 'ok');
+}
+
+/* ── delete ── */
+function deleteItem() {
+  if (!activeId) return;
+  const r = data.find(x=>x.id===activeId);
+  if (!r || !confirm(`"${r.name}" 을(를) 삭제하시겠습니까?`)) return;
+  data = data.filter(x=>x.id!==activeId);
+  save();
+  activeId = null;
+  document.getElementById('empty').style.display = 'flex';
+  document.getElementById('form').style.display  = 'none';
+  document.getElementById('foot').style.display  = 'none';
+  renderList();
+  toast('삭제되었습니다','ok');
+}
+
+/* ── test ── */
+function runTest() {
+  const pat = document.getElementById('f-pat').value.trim();
+  const rep = document.getElementById('f-out').value;
+  const txt = document.getElementById('test-in').value;
+  if (!pat) { toast('검색 패턴을 입력하세요','ng'); return; }
+  if (!validatePat()) { toast('유효하지 않은 패턴입니다','ng'); return; }
+
+  const fl = [...flags].join('');
+  let re;
+  try { re = new RegExp(pat, fl.includes('g') ? fl : fl+'g'); }
+  catch(e) { toast('패턴 오류: '+e.message,'ng'); return; }
+
+  // matches
+  const matches = [...txt.matchAll(new RegExp(pat, fl.includes('g') ? fl : fl+'g'))];
+  const cnt = matches.length;
+  const badge = document.getElementById('mbadge');
+  badge.textContent = cnt+' 매치';
+  badge.className   = 'badge'+(cnt===0?' none':'');
+
+  document.getElementById('res-orig').innerHTML = hlMatches(txt, matches);
+  document.getElementById('res-out').textContent = txt.replace(re, rep);
+  document.getElementById('results').style.display = 'grid';
+
+  // example results
+  runExTests(pat, fl, rep);
+}
+
+function hlMatches(txt, matches) {
+  if (!matches.length) return esc(txt);
+  let out='', last=0;
+  for (const m of matches) {
+    out += esc(txt.slice(last, m.index));
+    out += `<span class="hl">${esc(m[0])}</span>`;
+    last = m.index + (m[0].length || 1);
+  }
+  out += esc(txt.slice(last));
+  return out;
+}
+
+function runExTests(pat, fl, rep) {
+  const resEl = document.getElementById('ex-results');
+  if (!examples.length) { resEl.style.display='none'; return; }
+  resEl.style.display = 'flex';
+  resEl.innerHTML = examples.map(ex => {
+    if (!ex.input && !ex.expected) return '';
+    let actual='';
+    try { actual = ex.input.replace(new RegExp(pat, fl.includes('g')?fl:fl+'g'), rep); }
+    catch { actual='오류'; }
+    const pass = actual === ex.expected;
+    return `<div class="ex-res-row">
+      <div class="status ${pass?'pass':'fail'}">${pass?'✓':'✗'}</div>
+      <div class="ex-txt">"${esc(ex.input)}" → "${esc(actual)}"</div>
+      ${!pass?`<div class="ex-exp">예상: ${esc(ex.expected)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function clearResults() {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('ex-results').style.display = 'none';
+}
+
+/* ── export / import ── */
+function exportAll() {
+  if (!data.length) { toast('내보낼 항목 없음','ng'); return; }
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([JSON.stringify(data,null,2)], {type:'application/json'})),
+    download: `risu_regex_${new Date().toISOString().slice(0,10)}.json`
+  });
+  a.click();
+  toast(`${data.length}개 내보내기 완료`,'ok');
+}
+
+function importAll(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const fr = new FileReader();
+  fr.onload = ev => {
+    try {
+      const arr = JSON.parse(ev.target.result);
+      if (!Array.isArray(arr)) throw new Error('배열 형식이 아닙니다');
+      let added = 0;
+      arr.forEach(r => {
+        if (r.id && r.pattern && !data.find(x=>x.id===r.id)) { data.push(r); added++; }
+      });
+      save(); renderList();
+      toast(`${added}개 가져오기 완료`,'ok');
+    } catch(err) { toast('가져오기 실패: '+err.message,'ng'); }
+  };
+  fr.readAsText(file);
+  e.target.value='';
+}
+
+/* ── toast ── */
+function toast(msg, cls='') {
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast '+cls;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => { el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),300); }, 2400);
+}
+
+/* ── utils ── */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escA(s) { return String(s).replace(/"/g,'&quot;'); }
+
+/* ── keyboard shortcuts ── */
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey||e.metaKey) && e.key==='s') { e.preventDefault(); if(document.getElementById('form').style.display!=='none') saveItem(); }
+  if ((e.ctrlKey||e.metaKey) && e.key==='Enter') { e.preventDefault(); if(document.getElementById('form').style.display!=='none') runTest(); }
+});
+
+/* ── init ── */
+load();
+renderList();
+</script>
+</body>
+</html>
